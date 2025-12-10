@@ -1,13 +1,17 @@
 from PyQt6.QtWidgets import QMainWindow, QWidget, QVBoxLayout
+from PyQt6.QtCore import Qt, pyqtSignal
 import pyqtgraph.exporters
+from LVHV_UI.utils.utils import PloterStatus
 import pyqtgraph as pg
 import numpy as np
 from datetime import timedelta
 
 
 class RealTimePlotter(QWidget):
+    stop_plot_signal = pyqtSignal()
     def __init__(self, num_channels,total_time, plot_rate, parent=None):
         super().__init__(parent)
+        self.ploter_status = PloterStatus.STOPPED
         self.num_channels = num_channels
         self.total_time = total_time
         self.buffer_size = int(total_time * plot_rate)
@@ -40,6 +44,8 @@ class RealTimePlotter(QWidget):
 
         # Actualizar grafico
     def update_plot(self, new_value):
+        if self.ploter_status != PloterStatus.RUNNING:
+            return
         for ch in range(self.num_channels):
             self.y_data[ch][self.array_index] = new_value[ch]
 
@@ -52,24 +58,79 @@ class RealTimePlotter(QWidget):
                 x=self.x_data,
                 y=self.y_data[ch]
             )
+        if self.array_index >= self.buffer_size:
+            self.ploter_status = PloterStatus.STOPPED
+            self.stop_plot_signal.emit()
+            self.finish_plot("full_buffer_plot")
     
     def set_auto_range(self):
-        self.plot_widget.setXRange(0,self.time_elapsed) 
+        self.plot_widget.setXRange(0,self.time_elapsed, padding=0) 
 
+    def start_plot(self):
+        if self.ploter_status != PloterStatus.RUNNING:
+            if self.ploter_status == PloterStatus.STOPPED:
+                self.array_index = 0
+                self.time_elapsed = 0
+                self.y_data = np.zeros((self.num_channels, self.buffer_size))
+                for ch in range(self.num_channels):
+                    self.curves[ch].setData(
+                        x=self.x_data,
+                        y=self.y_data[ch]
+                    )
+            else: 
+                pass  # Resuming from PAUSED state
+        self.ploter_status = PloterStatus.RUNNING
+
+    def stop_plot(self):
+        self.ploter_status = PloterStatus.STOPPED
+        self.finish_plot("stoppped_plot")
+
+    def pause_plot(self):
+        self.ploter_status = PloterStatus.PAUSED
+
+    def reset_plot(self):
+        self.ploter_status = PloterStatus.STOPPED
+        self.array_index = 0
+        self.time_elapsed = 0
+        self.y_data = np.zeros((self.num_channels, self.buffer_size))
+        for ch in range(self.num_channels):
+            self.curves[ch].setData(
+                x=self.x_data,
+                y=self.y_data[ch]
+            )
+        self.plot_widget.setXRange(0, 10)
+    
     def zoom_in(self):
         self.plot_widget.getViewBox().scaleBy((0.9, 0.9))
 
     def zoom_out(self):
         self.plot_widget.getViewBox().scaleBy((1.1, 1.1))
 
-    def finish_plot(self):
+    def slider_time(self, value):
+        xmin, xmax = self.plot_widget.getViewBox().viewRange()[0]   # eje X
+        xcenter = (xmin + xmax) / 2
+        new_width = self.total_time * (value / 100)
+        self.plot_widget.setXRange(xcenter - new_width / 2, xcenter + new_width / 2)
+
+    def slider_voltage(self, value):
+        ymin, ymax = self.plot_widget.getViewBox().viewRange()[1]   # eje Y
+        ycenter = (ymin + ymax) / 2
+        new_height = 10 * (value / 100)
+        self.plot_widget.setYRange(ycenter - new_height / 2, ycenter + new_height / 2)
+
+    def finish_plot(self, filename = None):
+        self.ploter_status = PloterStatus.STOPPED
         self.set_auto_range()
+        name = filename if filename else "test"
+        self.save_plot(name)
+    
+    def save_plot(self, filename):
+        name = filename if filename else "test"
         time_strings = [str(timedelta(seconds=int(t))) for t in self.x_data]
         time_col = np.array(time_strings).reshape(-1, 1)
         arr = np.array(self.y_data).T.round(4)
         arr_full = np.hstack((time_col, arr))[:-1]
         exporter = pg.exporters.ImageExporter(self.plot_widget.plotItem)
-        exporter.export("plot.png")
+        exporter.export(f"{name}.png")
         header = "TIME," + ",".join([f"CH{i}" for i in range(len(self.y_data))])
-        np.savetxt("test.csv", arr_full,fmt="%s" ,delimiter=",", header=header, comments="")
-    
+        np.savetxt(f"{name}.csv", arr_full,fmt="%s" ,delimiter=",", header=header, comments="")

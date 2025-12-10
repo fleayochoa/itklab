@@ -11,7 +11,7 @@ def main():
     # Crear thread que genera datos
     data_thread = DataThread()
     data_thread.new_data.connect(window.on_new_data)
-    data_thread.finished.connect(window.on_data_finished)
+    window.start.connect(data_thread.data_start)
 
     data_thread.start()
     window.show()
