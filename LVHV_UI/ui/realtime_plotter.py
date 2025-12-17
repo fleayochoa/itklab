@@ -112,6 +112,7 @@ class RealTimePlotter(QWidget):
         self.ploter_status = PloterStatus.STOPPED
         self.array_index = 0
         self.time_elapsed = 0
+        self.seconds_elapsed = 0
         self.y_data = np.zeros((self.num_channels, self.buffer_size))
         for ch in range(self.num_channels):
             self.curves[ch].setData(

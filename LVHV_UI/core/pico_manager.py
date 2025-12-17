@@ -73,8 +73,9 @@ class PicoManager:
             channelized_samples = read_samples_numpy_varsized.reshape((-1,self.nchannels))
             # Append to final Array
             self.captured_samples = np.vstack((self.captured_samples,channelized_samples))
+        channel_means = self.captured_samples.mean(axis=0)
 
-        return self.captured_samples
+        return channel_means
     def close_device(self):
         assert_pico_ok(pl.pl1000CloseUnit(self.handle))
 

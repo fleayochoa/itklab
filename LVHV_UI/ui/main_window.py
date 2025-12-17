@@ -8,6 +8,7 @@ from PyQt6.QtCore import Qt, pyqtSignal, QUrl
 from LVHV_UI.utils import config
 from LVHV_UI.ui.realtime_plotter import RealTimePlotter
 from LVHV_UI.utils.utils import PloterStatus, XLSXLoader
+from LVHV_UI.core.HV_source import HVSource
 import pyqtgraph as pg
 import numpy as np
 import pandas as pd
@@ -15,13 +16,17 @@ import pandas as pd
 class MainWindow(QMainWindow):
     start = pyqtSignal()    
     xlsx_name = pyqtSignal(str)
+    set_serial_params = pyqtSignal(str, int)
+    set_source_params = pyqtSignal(float, float, int, int)
+    apply_params = pyqtSignal()
+    close_signal = pyqtSignal()
     def __init__(self):
         super().__init__()
 
         self.setWindowTitle("Gráfico en tiempo real")
 
         self.xlsx_loader = XLSXLoader()
-
+        self.available_ports = HVSource.get_available_ports()
         self.alarma = QSoundEffect()
         self.alarma.setSource(QUrl.fromLocalFile("alarma.wav"))
         self.alarma.setVolume(0.8)
@@ -44,17 +49,23 @@ class MainWindow(QMainWindow):
         self.btn_continuar = QPushButton("Continuar")
         self.btn_continuar.setEnabled(False)
         self.btn_open_xlsx = QPushButton("Abrir XLSX")
+        self.com_ports = QComboBox()
         self.left_list_xlsx = QComboBox()
         self.left_list_pogo = QComboBox()
         self.right_list_xlsx = QComboBox()
         self.right_list_pogo = QComboBox()
         self.left_list_pogo.addItems([str(pin) for pin in config.pogo_pins])
         self.right_list_pogo.addItems([str(pin) for pin in config.pogo_pins])
+        self.left_list_pogo.setCurrentIndex(2)
+        self.right_list_pogo.setCurrentIndex(3)
+        self.com_ports.addItems(self.available_ports)
         self.btn_open_xlsx.clicked.connect(self.open_xlsx_file)
         self.btn_continuar.clicked.connect(self.on_continue)
         intro_layout.addWidget(self.label_intro)
         intro_layout.addWidget(self.btn_continuar)
         intro_layout.addWidget(self.btn_open_xlsx)
+        intro_layout.addWidget(QLabel("Seleccionar puerto COM:"))
+        intro_layout.addWidget(self.com_ports)
         intro_layout.addLayout(self.xlsx_container)
         self.xlsx_container.addLayout(self.left_xlsx)
         self.xlsx_container.addLayout(self.right_xlsx)
@@ -92,6 +103,7 @@ class MainWindow(QMainWindow):
         self.slider_y_range.setValue(1)
         self.slider_y_range.setMaximum(100)
         self.slider_y_range.setValue(100)
+        self.HV_status = QLabel("HV Status: Desconectado")
 
         # Conectar botones y sliders
         self.btn_zoom_in.clicked.connect(self.plotter.zoom_in)
@@ -117,6 +129,7 @@ class MainWindow(QMainWindow):
         self.control_layout.addWidget(self.slider_y_range)
         self.control_layout.addWidget(QLabel("Seleccionar dato:"))
         self.control_layout.addWidget(self.data_selector)
+        self.control_layout.addWidget(self.HV_status)
         self.play_layout.addWidget(self.play_button)
         self.play_layout.addWidget(self.pause_button)
         self.play_layout.addWidget(self.stop_button)
@@ -126,6 +139,7 @@ class MainWindow(QMainWindow):
         self.bottom_layout.addLayout(self.control_layout)
         self.plot_layout.addLayout(self.bottom_layout)
         self.page_controls.setLayout(self.plot_layout)
+        
         self.stack.addWidget(self.page_controls)
         #layout.addLayout(self.hlayout)
 
@@ -137,6 +151,17 @@ class MainWindow(QMainWindow):
     
     def on_data_finished(self, data):
         print("Data acquisition finished.")
+        self.set_serial_params.emit(
+            self.com_ports.currentText().split(";")[0],
+            9600
+        )
+        self.set_source_params.emit(
+            0,
+            0,
+            100,
+            100
+        )
+        self.apply_params.emit()
         self.alarma.play()
         self.update_buttons()
         self.data_selector.clear()
@@ -150,10 +175,32 @@ class MainWindow(QMainWindow):
                         self.right_list_xlsx.currentText()[-4:],
                         self.right_list_pogo.currentText())
         self.plotter.set_filename(self.file_name)
+        self.set_serial_params.emit(
+            self.com_ports.currentText().split(";")[0],
+            9600
+        )
+        self.set_source_params.emit(
+            config.VOLTAGE_CH1,
+            config.VOLTAGE_CH2,
+            config.RAMP_SPEED_CH1,
+            config.RAMP_SPEED_CH2
+        )
+        self.apply_params.emit()
         self.update_buttons()
 
     def on_stop(self):
         self.plotter.stop_plot()
+        self.set_serial_params.emit(
+            self.com_ports.currentText().split(";")[0],
+            9600
+        )
+        self.set_source_params.emit(
+            0,
+            0,
+            100,
+            100
+        )
+        self.apply_params.emit()
         self.update_buttons()
     
     def on_pause(self):
@@ -178,6 +225,7 @@ class MainWindow(QMainWindow):
             [self.left_list_xlsx.currentText(), self.right_list_xlsx.currentText()],
             [self.left_list_pogo.currentText(), self.right_list_pogo.currentText()]
         )
+        print(self.data_selector.currentText().split("_"))
         print("guardado con exito")
         #self.selected_index = 
         #self.left_data_dict = {"PP Board Used": self.left_list_pogo.currentText(),
@@ -210,6 +258,7 @@ class MainWindow(QMainWindow):
         self.xlsx_loader.set_file_path(self.file_path)
         self.xlsx_loader.load_data()
         ids_con_ntc_vacio = self.xlsx_loader.get_ids_with_empty_ntc()
+        print(ids_con_ntc_vacio)
         self.left_list_xlsx.clear()
         self.right_list_xlsx.clear()
         self.left_list_xlsx.addItems(ids_con_ntc_vacio)
@@ -218,6 +267,26 @@ class MainWindow(QMainWindow):
             self.left_list_xlsx.setCurrentIndex(0)
             self.right_list_xlsx.setCurrentIndex(min(1, len(ids_con_ntc_vacio)-1))
         self.btn_continuar.setEnabled(True)
+
+    def HV_status_update(self, status):
+        if status == 0:
+            self.HV_status.setText("Seteando Voltaje 1")
+        elif status == 1:
+            self.HV_status.setText("Seteando V/s 1")
+        elif status == 2:
+            self.HV_status.setText("Aplicando voltaje 1")
+        elif status == 3:
+            self.HV_status.setText("Seteando Voltaje 2")
+        elif status == 4:
+            self.HV_status.setText("Seteando V/s 2")
+        elif status == 5:
+            self.HV_status.setText("Aplicando voltaje 2")
+        else:
+            self.HV_status.setText("HV Status: Finalizado")
+
+    def closeEvent(self, event):
+        self.close_signal.emit()
+        event.accept()
 
 
     

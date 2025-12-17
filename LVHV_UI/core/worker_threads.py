@@ -28,33 +28,37 @@ class DataThread(QThread):
     def run(self):
         t = 0
         #self.picologger.initialize_device()
-        while self.running:
-            values = [
-                math.sin(t),           # canal 1
-                math.cos(t * 0.7),     # canal 2
-                0.5*math.sin(2*t),      # canal 3
-                0.5,                # canal 4
-                0.2*math.sin(0.5*t),   # canal 5
-                0.1*math.cos(3*t),    # canal 6
-                0.7,               # canal 7
-                0.3*math.sin(t),      # canal 8
-                0.4*math.cos(t),     # canal 9
-                0.6*math.sin(1.5*t),  # canal 10
-                0.2,               # canal 11
-                -0.7            # canal 12
-            ][:self.num_channels]
-            
-            for i in range(self.num_channels):
-                self.values_buffer[i][self.sample_counter] = values[i]
-            if self.started:
-                t += 1 / self.sample_rate
-                self.sample_counter += 1
-                self.sample_counter %= self.samples_per_plot
+        try:
+            while self.running:
+                values = [
+                    math.sin(t),           # canal 1
+                    math.cos(t * 0.7),     # canal 2
+                    0.5*math.sin(2*t),      # canal 3
+                    0.5,                # canal 4
+                    0.2*math.sin(0.5*t),   # canal 5
+                    0.1*math.cos(3*t),    # canal 6
+                    0.7,               # canal 7
+                    0.3*math.sin(t),      # canal 8
+                    0.4*math.cos(t),     # canal 9
+                    0.6*math.sin(1.5*t),  # canal 10
+                    0.2,               # canal 11
+                    -0.7            # canal 12
+                ][:self.num_channels]
+                
+                for i in range(self.num_channels):
+                    self.values_buffer[i][self.sample_counter] = values[i]
+                if self.started:
+                    t += 1 / self.sample_rate
+                    self.sample_counter += 1
+                    self.sample_counter %= self.samples_per_plot
 
-                if self.sample_counter >= self.samples_per_plot-1:
-                    means = np.mean(self.values_buffer, axis=1)
-                    self.new_data.emit(means.tolist())
-            time.sleep(1 / self.sample_rate)
+                    if self.sample_counter >= self.samples_per_plot-1:
+                        means = np.mean(self.values_buffer, axis=1)
+                        self.new_data.emit(means.tolist())
+                time.sleep(1 / self.sample_rate)
+        finally:
+            #self.picologger.close_device()
+            pass
 
     def data_start(self):
         self.started = True
@@ -64,3 +68,13 @@ class DataThread(QThread):
     def data_stop(self):
         self.started = False
         print("Deteniendo adquisición de datos...")
+    def close(self):
+        print("Cerrando DataThread...")
+        self.started = False
+        self.running = False
+
+        # if self.picologger is not None:
+        #     self.picologger.close_device()
+
+        self.wait()  # espera a que run() termine
+        print("DataThread cerrado correctamente")

@@ -34,8 +34,8 @@ class XLSXLoader:
     def load_data(self):
         try:
             self.wb = load_workbook(self.file_path)
-            self.ws = self.wb["LVHV"]
-            self.df = pd.read_excel(self.file_path, sheet_name="LVHV")
+            self.ws = self.wb["LVHV_copy"]
+            self.df = pd.read_excel(self.file_path, sheet_name="LVHV_copy")
         except Exception as e:
             raise ValueError("Could not load Excel file.")
     
@@ -55,6 +55,10 @@ class XLSXLoader:
             r = i+2  # +2 por el header y el index base 0
 
             self.ws.cell(r, self.COL["PP Board Used"], int(pogo[0]))
+            #celda = self.ws.cell(r, self.COL["PP Board Used"])
+            #celda.value = float(pogo[0])
+            #celda.hyperlink = None
+            #celda.font = celda.font.copy(underline=None)
             self.ws.cell(r, self.COL["VIN+"], float(arr_data[0]))
             self.ws.cell(r, self.COL["VIN-"], float(arr_data[1]))
             self.ws.cell(r, self.COL["GND+"], float(arr_data[2]))
