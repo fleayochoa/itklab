@@ -1,0 +1,17 @@
+pyproject.toml
+src/lvhv_ui/__init__.py
+src/lvhv_ui/main.py
+src/lvhv_ui.egg-info/PKG-INFO
+src/lvhv_ui.egg-info/SOURCES.txt
+src/lvhv_ui.egg-info/dependency_links.txt
+src/lvhv_ui.egg-info/entry_points.txt
+src/lvhv_ui.egg-info/top_level.txt
+src/lvhv_ui/assets/__init__.py
+src/lvhv_ui/assets/alarma.wav
+src/lvhv_ui/core/HV_source.py
+src/lvhv_ui/core/pico_manager.py
+src/lvhv_ui/core/worker_threads.py
+src/lvhv_ui/ui/main_window.py
+src/lvhv_ui/ui/realtime_plotter.py
+src/lvhv_ui/utils/config.py
+src/lvhv_ui/utils/utils.py

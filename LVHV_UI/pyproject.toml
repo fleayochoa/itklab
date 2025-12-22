@@ -1,0 +1,12 @@
+[project]
+name = "lvhv-ui"
+version = "0.1.0"
+
+[project.scripts]
+lvhv-ui = "lvhv_ui.main:main"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.package-data]
+lvhv_ui = ["assets/*.wav"]

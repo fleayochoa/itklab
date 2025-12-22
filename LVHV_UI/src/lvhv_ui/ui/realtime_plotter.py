@@ -1,7 +1,7 @@
 from PyQt6.QtWidgets import QMainWindow, QWidget, QVBoxLayout
 from PyQt6.QtCore import Qt, pyqtSignal
 import pyqtgraph.exporters
-from LVHV_UI.utils.utils import PloterStatus
+from lvhv_ui.utils.utils import PloterStatus
 import pyqtgraph as pg
 import numpy as np
 from datetime import timedelta

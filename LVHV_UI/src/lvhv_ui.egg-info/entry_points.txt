@@ -1,0 +1,2 @@
+[console_scripts]
+lvhv-ui = lvhv_ui.main:main

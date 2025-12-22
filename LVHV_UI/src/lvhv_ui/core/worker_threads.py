@@ -1,6 +1,6 @@
 from PyQt6.QtCore import QThread, pyqtSignal
-from LVHV_UI.utils import config
-#from LVHV_UI.core.pico_manager import PicoManager
+from lvhv_ui.utils import config
+#from lvhv_ui.core.pico_manager import PicoManager
 import numpy as np
 import time
 import math

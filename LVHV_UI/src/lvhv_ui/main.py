@@ -2,9 +2,9 @@ from PyQt6.QtWidgets import QApplication
 from PyQt6.QtCore import QThread
 import sys
 
-from LVHV_UI.core.worker_threads import DataThread
-from LVHV_UI.core.HV_source import HVSource
-from LVHV_UI.ui.main_window import MainWindow
+from lvhv_ui.core.worker_threads import DataThread
+from lvhv_ui.core.HV_source import HVSource
+from lvhv_ui.ui.main_window import MainWindow
 
 def main():
     app = QApplication(sys.argv)

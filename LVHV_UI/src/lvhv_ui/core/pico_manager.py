@@ -3,7 +3,7 @@ from ctypes import c_int16
 import numpy as np
 from time import sleep, time
 import picosdk
-from LVHV_UI.utils import config
+from lvhv_ui.utils import config
 from picosdk.pl1000 import pl1000 as pl
 from picosdk.functions import adc2mVpl1000, assert_pico_ok
 

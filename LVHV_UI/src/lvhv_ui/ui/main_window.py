@@ -3,12 +3,14 @@ from PyQt6.QtWidgets import (
     QStackedLayout, QLineEdit, QHBoxLayout, QFileDialog, QListWidget, QComboBox
 )
 from PyQt6.QtMultimedia import QSoundEffect
+from importlib import resources
+
 
 from PyQt6.QtCore import Qt, pyqtSignal, QUrl
-from LVHV_UI.utils import config
-from LVHV_UI.ui.realtime_plotter import RealTimePlotter
-from LVHV_UI.utils.utils import PloterStatus, XLSXLoader
-from LVHV_UI.core.HV_source import HVSource
+from lvhv_ui.utils import config
+from lvhv_ui.ui.realtime_plotter import RealTimePlotter
+from lvhv_ui.utils.utils import PloterStatus, XLSXLoader
+from lvhv_ui.core.HV_source import HVSource
 import pyqtgraph as pg
 import numpy as np
 import pandas as pd
@@ -28,7 +30,9 @@ class MainWindow(QMainWindow):
         self.xlsx_loader = XLSXLoader()
         self.available_ports = HVSource.get_available_ports()
         self.alarma = QSoundEffect()
-        self.alarma.setSource(QUrl.fromLocalFile("alarma.wav"))
+        wav_resource = resources.files("lvhv_ui.assets").joinpath("alarma.wav")
+        with resources.as_file(wav_resource) as wav_path:
+            self.alarma.setSource(QUrl.fromLocalFile(str(wav_path)))
         self.alarma.setVolume(0.8)
         self.file_name = "no_name"
         self.stack = QStackedLayout()
