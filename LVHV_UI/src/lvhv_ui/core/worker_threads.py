@@ -1,6 +1,6 @@
 from PyQt6.QtCore import QThread, pyqtSignal
 from lvhv_ui.utils import config
-#from lvhv_ui.core.pico_manager import PicoManager
+from lvhv_ui.core.pico_manager import PicoManager
 import numpy as np
 import time
 import math
@@ -44,9 +44,10 @@ class DataThread(QThread):
                     0.2,               # canal 11
                     -0.7            # canal 12
                 ][:self.num_channels]
-                
+                real_values = self.picologger.get_acquisition_data()
                 for i in range(self.num_channels):
                     self.values_buffer[i][self.sample_counter] = values[i]
+                    #self.values_buffer[i][self.sample_counter] = real_values[i]
                 if self.started:
                     t += 1 / self.sample_rate
                     self.sample_counter += 1
@@ -55,10 +56,10 @@ class DataThread(QThread):
                     if self.sample_counter >= self.samples_per_plot-1:
                         means = np.mean(self.values_buffer, axis=1)
                         self.new_data.emit(means.tolist())
-                time.sleep(1 / self.sample_rate)
+                        #self.new_data.emit(real_values.tolist())
+                time.sleep(1 / self.sample_rate) # Comentar
         finally:
-            #self.picologger.close_device()
-            pass
+            self.picologger.close_device()
 
     def data_start(self):
         self.started = True
@@ -73,8 +74,8 @@ class DataThread(QThread):
         self.started = False
         self.running = False
 
-        # if self.picologger is not None:
-        #     self.picologger.close_device()
+        if self.picologger is not None:
+            self.picologger.close_device()
 
         self.wait()  # espera a que run() termine
         print("DataThread cerrado correctamente")

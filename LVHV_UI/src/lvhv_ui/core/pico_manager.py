@@ -1,7 +1,7 @@
 import ctypes
 from ctypes import c_int16
 import numpy as np
-from time import sleep, time
+import time
 import picosdk
 from lvhv_ui.utils import config
 from picosdk.pl1000 import pl1000 as pl
@@ -16,8 +16,8 @@ class PicoManager:
                               4:"GND2+", 5:"HVmon2", 6:"NTC2",
                               7: "HVmon1", 8:"Vin1-", 9:"Vin1+",
                               10: "GND1-", 11:"GND1+", 12:"NTC1"}
-        self.usForBlock = ctypes.c_uint32(int(1e6/config.PLOT_RATE))
-        self.noOfValues = ctypes.c_uint32(int(config.SAMPLE_RATE/config.PLOT_RATE))
+        self.usForBlock = ctypes.c_uint32(int(1e6/config.PLOT_RATE)) # 10_000
+        self.noOfValues = ctypes.c_uint32(int(config.SAMPLE_RATE/config.PLOT_RATE)) # 10
         self.nchannels = len(self.channel_list)
         self.channel_array = (ctypes.c_uint16 * self.nchannels)()
         for i, ch in enumerate(self.channel_list):
@@ -35,7 +35,7 @@ class PicoManager:
         self.status["openUnit"] = pl.pl1000OpenUnit(ctypes.byref(self.handle))
         assert_pico_ok(self.status["openUnit"])
         print("Handle:", self.handle.value)
-        self.status["setInterval"] = pl.pl1000SetInterval(self.handle, self.usForBlock, self.noOfValues
+        self.status["setInterval"] = pl.pl1000SetInterval(self.handle, ctypes.byref(self.usForBlock), self.noOfValues
                                                           , self.channel_array, self.nchannels)
         assert_pico_ok(self.status["setInterval"])
 
@@ -55,7 +55,7 @@ class PicoManager:
             assert_pico_ok(pl.pl1000Ready(self.handle, ctypes.byref(ready)))
 
 
-        for iteration_idx in range(9):
+        for iteration_idx in range(10):
             time.sleep(self.usForBlock.value/1e6/10)
             self.read_sample_count = ctypes.c_uint32((int)(self.read_buffer_size//self.nchannels))
             assert_pico_ok(
@@ -74,7 +74,14 @@ class PicoManager:
             # Append to final Array
             self.captured_samples = np.vstack((self.captured_samples,channelized_samples))
         channel_means = self.captured_samples.mean(axis=0)
-
+        input_range = picosdk.pl1000.pl1000.PL1000_VOLTAGE_RANGE["PL1000_2V5"]
+        # Convert ADC counts to mV
+        for i in range(len(channel_means)):
+            channel_means[i] = adc2mVpl1000(channel_means[i], input_range)
+        # Debug - list array sizes
+        # print(f'  - channelized_samples.shape: {channelized_samples.shape}')
+        # print(f'  - captured_samples.shape: {captured_samples.shape}')
+        # print('---')
         return channel_means
     def close_device(self):
         assert_pico_ok(pl.pl1000CloseUnit(self.handle))

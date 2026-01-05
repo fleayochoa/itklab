@@ -39,7 +39,7 @@ class HVSource(QThread):
         try:
             self.connection = serial.Serial(self.port, self.baudrate, timeout=1)
             self.connection.write(b'\r\n')  # Send initial newline to wake up the device
-            time.sleep(0.5)  # Wait for the connection to establish
+            time.sleep(0.1)  # Wait for the connection to establish
             response = self.connection.readline().decode('ascii').strip()
             print(response)
             print("Connection established.")
@@ -51,7 +51,7 @@ class HVSource(QThread):
             full_command = command + '\r\n' # Add \r=<CR> and \n=<LF>
             cmd_ascii = full_command.encode('ascii')  # Convert commando to ascii
             self.connection.write(cmd_ascii) # Send command to HV Supply
-            time.sleep(0.5) # Wait 0.5 seconds to recive the response
+            time.sleep(0.1) # Wait 0.1 seconds to recive the response
             response = self.connection.readline().decode('ascii').strip() # Read the response
             print(response)
         except Exception as e:
@@ -76,20 +76,26 @@ class HVSource(QThread):
         self.send_command(command)
 
     def run(self): # long running task
-        while True:
-            if self.send:
-                self.send = False
-                i=0
-                for ch in [1,2]:
-                    self.set_voltage(ch, self.voltage[ch-1])
-                    i = i + 1
-                    self.progress.emit(i)
-                    self.set_ramp_speed(ch, self.ramp_speed[ch-1])
-                    i = i + 1
-                    self.progress.emit(i)
-                    self.apply_parameters(ch)
-                    i = i + 1
-                    self.progress.emit(i)
-                self.finished.emit()
-            else:
-                time.sleep(0.1)
+        try:
+            while True:
+                if self.send:
+                    self.send = False
+                    i=0
+                    self.start_connection()
+                    for ch in [1,2]:
+                        self.set_voltage(ch, self.voltage[ch-1])
+                        i = i + 1
+                        self.progress.emit(i)
+                        self.set_ramp_speed(ch, self.ramp_speed[ch-1])
+                        i = i + 1
+                        self.progress.emit(i)
+                        self.apply_parameters(ch)
+                        i = i + 1
+                        self.progress.emit(i)
+                    self.finished.emit()
+                else:
+                    time.sleep(0.1)
+        finally:
+            if self.connection is not None:
+                self.connection.close()
+                print("Connection closed.")

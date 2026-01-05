@@ -43,7 +43,6 @@ class MainWindow(QMainWindow):
                                        total_time=config.TOTAL_TIME,
                                        plot_rate=config.PLOT_RATE)
         self.plotter.stop_plot_signal.connect(self.on_data_finished)
-        #layout.addWidget(self.plo  tter)
         self.page_intro = QWidget()
         intro_layout = QVBoxLayout()
         self.left_xlsx = QVBoxLayout()
@@ -231,9 +230,7 @@ class MainWindow(QMainWindow):
         )
         print(self.data_selector.currentText().split("_"))
         print("guardado con exito")
-        #self.selected_index = 
-        #self.left_data_dict = {"PP Board Used": self.left_list_pogo.currentText(),
-        #                       "VIN+": self.}
+
 
     def update_buttons(self):
         if self.plotter.ploter_status == PloterStatus.RUNNING:

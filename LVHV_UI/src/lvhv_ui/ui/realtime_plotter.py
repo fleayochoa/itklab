@@ -156,5 +156,5 @@ class RealTimePlotter(QWidget):
         arr_full = np.hstack((time_col, arr))
         exporter = pg.exporters.ImageExporter(self.plot_widget.plotItem)
         exporter.export(f"{name}.png")
-        header = "TIME," + ",".join([f"CH{i}" for i in range(len(self.y_data))])
+        header = "TIME," + ",".join([f"CH{i+1}" for i in range(len(self.y_data))])
         np.savetxt(f"{name}.csv", arr_full,fmt="%s" ,delimiter=",", header=header, comments="")
