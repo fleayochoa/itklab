@@ -44,14 +44,15 @@ class DataThread(QThread):
                     0.2,               # canal 11
                     -0.7            # canal 12
                 ][:self.num_channels]
-                real_values = self.picologger.get_acquisition_data()
                 for i in range(self.num_channels):
                     self.values_buffer[i][self.sample_counter] = values[i]
                     #self.values_buffer[i][self.sample_counter] = real_values[i]
                 if self.started:
+                    #self.picologger.set_interval()
                     t += 1 / self.sample_rate
                     self.sample_counter += 1
                     self.sample_counter %= self.samples_per_plot
+                    #real_values = self.picologger.get_acquisition_data()
 
                     if self.sample_counter >= self.samples_per_plot-1:
                         means = np.mean(self.values_buffer, axis=1)

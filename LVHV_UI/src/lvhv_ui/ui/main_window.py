@@ -52,6 +52,7 @@ class MainWindow(QMainWindow):
         self.btn_continuar = QPushButton("Continuar")
         self.btn_continuar.setEnabled(False)
         self.btn_open_xlsx = QPushButton("Abrir XLSX")
+        self.btn_set_save_path = QPushButton("Seleccionar carpeta de guardado")
         self.com_ports = QComboBox()
         self.left_list_xlsx = QComboBox()
         self.left_list_pogo = QComboBox()
@@ -64,9 +65,11 @@ class MainWindow(QMainWindow):
         self.com_ports.addItems(self.available_ports)
         self.btn_open_xlsx.clicked.connect(self.open_xlsx_file)
         self.btn_continuar.clicked.connect(self.on_continue)
+        self.btn_set_save_path.clicked.connect(self.select_save_path)
         intro_layout.addWidget(self.label_intro)
         intro_layout.addWidget(self.btn_continuar)
         intro_layout.addWidget(self.btn_open_xlsx)
+        intro_layout.addWidget(self.btn_set_save_path)
         intro_layout.addWidget(QLabel("Seleccionar puerto COM:"))
         intro_layout.addWidget(self.com_ports)
         intro_layout.addLayout(self.xlsx_container)
@@ -144,7 +147,6 @@ class MainWindow(QMainWindow):
         self.page_controls.setLayout(self.plot_layout)
         
         self.stack.addWidget(self.page_controls)
-        #layout.addLayout(self.hlayout)
 
         self.stack.setCurrentWidget(self.page_intro)
 
@@ -254,6 +256,15 @@ class MainWindow(QMainWindow):
             "XLSX Files (*.xlsx)"     # ← FILTRO SOLO XLSX
         )
         self.update_xlsx()
+
+    def select_save_path(self):
+        self.save_path = QFileDialog.getExistingDirectory(
+            self,
+            "Seleccionar carpeta de guardado",
+            ""
+        )
+        print(f"Carpeta de guardado seleccionada: {self.save_path}")
+        self.plotter.save_path = self.save_path
 
     def update_xlsx(self):
         self.xlsx_loader.set_file_path(self.file_path)

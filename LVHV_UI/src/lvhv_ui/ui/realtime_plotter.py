@@ -5,18 +5,23 @@ from lvhv_ui.utils.utils import PloterStatus
 import pyqtgraph as pg
 import numpy as np
 from datetime import timedelta
+from pathlib import Path
+from LVHV_UI.src.lvhv_ui.utils import config
+
 
 
 class RealTimePlotter(QWidget):
     stop_plot_signal = pyqtSignal(list)
-    def __init__(self, num_channels,total_time, plot_rate, file_name = "test",parent=None):
+    def __init__(self, num_channels,total_time, plot_rate, file_name = "test",parent=None, sample_rate=1000):
         super().__init__(parent)
         self.ploter_status = PloterStatus.STOPPED
         self.num_channels = num_channels
         self.total_time = total_time
-        self.buffer_size = int(total_time * plot_rate)
+        self.buffer_size = int(total_time * sample_rate)
         self.plot_rate = plot_rate
+        self.sample_rate = sample_rate
         self.file_name = file_name
+        self.save_path = ""
         layout = QVBoxLayout(self)
         # Crear plot
         self.plot_widget = pg.PlotWidget()
@@ -31,7 +36,8 @@ class RealTimePlotter(QWidget):
         for i in range(self.num_channels):
             self.curves.append(
                 self.plot_widget.plot(
-                    pen=pg.mkPen(color=colors[i % len(colors)], width=2)
+                    pen=pg.mkPen(color=colors[i % len(colors)], width=2),
+                    name=config.channel_names[i+1]
                 )
             )
         # Agregar al layout
@@ -157,4 +163,5 @@ class RealTimePlotter(QWidget):
         exporter = pg.exporters.ImageExporter(self.plot_widget.plotItem)
         exporter.export(f"{name}.png")
         header = "TIME," + ",".join([f"CH{i+1}" for i in range(len(self.y_data))])
-        np.savetxt(f"{name}.csv", arr_full,fmt="%s" ,delimiter=",", header=header, comments="")
+        filename = Path(self.save_path) / f"{name}.csv" if self.save_path != "" else f"{name}.csv"
+        np.savetxt(filename, arr_full,fmt="%s" ,delimiter=",", header=header, comments="")
