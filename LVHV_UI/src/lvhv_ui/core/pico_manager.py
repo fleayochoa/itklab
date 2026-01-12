@@ -16,8 +16,8 @@ class PicoManager:
                               4:"GND2+", 5:"HVmon2", 6:"NTC2",
                               7: "HVmon1", 8:"Vin1-", 9:"Vin1+",
                               10: "GND1-", 11:"GND1+", 12:"NTC1"}
-        self.usForBlock = ctypes.c_uint32(int(1e6*config.TOTAL_TIME)) 
-        self.noOfValues = ctypes.c_uint32(int(config.SAMPLE_RATE*config.TOTAL_TIME)) # 10
+        self.usForBlock = ctypes.c_uint32(int(1_000_000)) 
+        self.noOfValues = ctypes.c_uint32(int(config.SAMPLE_RATE)) # 10
         self.nchannels = len(self.channel_list)
         self.channel_array = (ctypes.c_uint16 * self.nchannels)()
         for i, ch in enumerate(self.channel_list):
@@ -73,16 +73,15 @@ class PicoManager:
         channelized_samples = read_samples_numpy_varsized.reshape((-1,self.nchannels))
         # Append to final Array
         self.captured_samples = np.vstack((self.captured_samples,channelized_samples))
-        channel_means = self.captured_samples.mean(axis=0)
         input_range = 2500
         # Convert ADC counts to mV
-        for i in range(len(channel_means)):
-            channel_means[i] = adc2mVpl1000(channel_means[i], input_range)
+        for i in range(len(self.captured_samples)):
+            self.captured_samples[i] = adc2mVpl1000(self.captured_samples[i], input_range)
         # Debug - list array sizes
         # print(f'  - channelized_samples.shape: {channelized_samples.shape}')
         # print(f'  - captured_samples.shape: {captured_samples.shape}')
         # print('---')
-        return channel_means
+        return self.captured_samples
     def close_device(self):
         assert_pico_ok(pl.pl1000CloseUnit(self.handle))
 

@@ -17,6 +17,7 @@ import pandas as pd
 
 class MainWindow(QMainWindow):
     start = pyqtSignal()    
+    stop = pyqtSignal()
     xlsx_name = pyqtSignal(str)
     set_serial_params = pyqtSignal(str, int)
     set_source_params = pyqtSignal(float, float, int, int)

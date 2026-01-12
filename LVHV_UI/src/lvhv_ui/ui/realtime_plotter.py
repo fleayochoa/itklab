@@ -6,7 +6,7 @@ import pyqtgraph as pg
 import numpy as np
 from datetime import timedelta
 from pathlib import Path
-from LVHV_UI.src.lvhv_ui.utils import config
+from lvhv_ui.utils import config
 
 
 
@@ -54,15 +54,16 @@ class RealTimePlotter(QWidget):
         self.counter_ticks = 0 # El csv guarda a 1Hz
 
         # Actualizar grafico
-    def update_plot(self, new_value):
+    def update_plot(self, new_values):
         if self.ploter_status != PloterStatus.RUNNING:
             return
-        for ch in range(self.num_channels):
-            self.y_data[ch][self.array_index] = new_value[ch]
-
-        self.array_index = (self.array_index + 1)
-        self.counter_ticks += 1
-        self.time_elapsed += self.dt
+        
+        for j in range(len(new_values[0])):
+            for ch in range(self.num_channels):
+                self.y_data[ch][self.array_index] = new_values[ch][j]
+            self.array_index += 1
+            self.counter_ticks += 1
+        self.time_elapsed += self.dt*len(new_values[0])
         
         # Actualizar la curva
         for ch in range(self.num_channels):
@@ -70,20 +71,23 @@ class RealTimePlotter(QWidget):
                 x=self.x_data,
                 y=self.y_data[ch]
             )
-        # Actualizar datos para CSV a 1Hz
-        if self.counter_ticks >= self.plot_rate:
-            for ch in range(self.num_channels):
-                self.csv_data[ch][self.seconds_elapsed] = np.mean(
-                    self.y_data[ch][self.seconds_elapsed * self.plot_rate : (self.seconds_elapsed + 1) * self.plot_rate])
-            self.seconds_elapsed += 1
-            self.counter_ticks = 0
+
         # Detener plot (finalizado)
         if self.array_index >= self.buffer_size:
+            self.csv_data = self.get_csv_data()
             print(self.counter_ticks, self.seconds_elapsed, self.total_time)
             self.ploter_status = PloterStatus.STOPPED
             data_str = ["_".join(f'{x:.2f}' for x in fila) for fila in self.csv_data[:, -5:].transpose()]
             self.stop_plot_signal.emit(data_str)
             self.finish_plot()
+    
+    def get_csv_data(self):
+        N = self.array_index
+        N_trunc = (N//config.SAMPLE_RATE)*config.SAMPLE_RATE
+        data_trunc = self.y_data[:, :N_trunc]
+        data_reshaped = data_trunc.reshape(self.num_channels, -1, config.SAMPLE_RATE)
+        data_1Hz = data_reshaped.mean(axis=2)
+        return data_1Hz
     
     def set_auto_range(self):
         self.plot_widget.setXRange(0,self.time_elapsed, padding=0) 
@@ -158,7 +162,7 @@ class RealTimePlotter(QWidget):
         name = filename if filename else self.file_name
         time_strings = [str(timedelta(seconds=int(t))) for t in self.seconds_data]
         time_col = np.array(time_strings).reshape(-1, 1)
-        arr = np.array(self.csv_data).T.round(4)
+        arr = self.csv_data.T.round(4)
         arr_full = np.hstack((time_col, arr))
         exporter = pg.exporters.ImageExporter(self.plot_widget.plotItem)
         exporter.export(f"{name}.png")
